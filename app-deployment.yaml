@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crm-app-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: crm-app
+  template:
+    metadata:
+      labels:
+        app: crm-app
+    spec:
+      containers:
+      - name: crm-app
+        image: crm-jvm:v1
+        imagePullPolicy: Never # Брать локальный образ
+        ports:
+        - containerPort: 8080
+        env:
+        # Передаем данные из секрета
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: crm-db-secret
+              key: POSTGRES_USER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: crm-db-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: crm-db-secret
+              key: POSTGRES_DB
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: crm-app-service
+spec:
+  selector:
+    app: crm-app
+  ports:
+    - protocol: TCP
+      port: 80        # Внешний порт сервиса
+      targetPort: 8080 # Внутренний порт контейнера (из Dockerfile EXPOSE)
+  type: LoadBalancer
